@@ -190,9 +190,18 @@ python vol_contraction_signal.py --csv hourly_ohlc.csv --pairs ETH/USD DOGE/USD 
 
 The objective of backtesting is to test whether the hypothesis survives transaction costs and changes in market conditions. Backtesting **does not** retroactively explain or reproduce the hackathon leaderboard result.
 
-### 6.1 Portfolio backtest results — to complete
+### 6.1 Historical Backtesting
 
-Only populate this table using a reproducible run of the **same strategy and universe** identified in this README. Do not substitute results from the team's separate execution bot.
+The original BTC-Gated Momentum strategy combines Bitcoin market-regime filtering, 24-hour price breakouts, realised-volatility contraction and cross-asset momentum ranking.
+
+Historical experiments used Binance hourly cryptocurrency data and compared the strategy against four alternative momentum-based approaches.
+
+Best observed exploratory result: +0.896% final-period return, with 0.363% maximum drawdown, in an earlier six-hour rebalancing simulation using a 0.20% estimated execution cost per side.
+
+This result is reported as an exploratory observation rather than verified out-of-sample profitability. Subsequent tests using different simulation assumptions and historical samples produced negative returns.
+
+The research illustrates the sensitivity of systematic trading performance to execution assumptions, rebalancing frequency and sample selection. Historical Binance results do not represent realised returns from the Roostoo competition.
+
 
 | Metric | Standalone strategy backtest |
 | --- | --- |

@@ -1,0 +1,47 @@
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables and API credentials
+.env
+.env.*
+*.pem
+*.key
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# macOS files
+.DS_Store
+
+# IDE settings
+.vscode/
+.idea/
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Historical market data
+results/*_prices.csv
+crypto_three_strategy_results/*_prices.csv
+
+# Intermediate hourly backtest outputs
+results/*_hourly.csv
+crypto_three_strategy_results/*_hourly.csv
+
+# Superseded preliminary results
+results/hourly_rebalancing_preliminary_metrics.csv
+
+# Keep summary metrics and equity charts
+!results/all_strategy_metrics.csv
+!results/equity_curves.png
+!crypto_three_strategy_results/all_strategy_metrics.csv
+!crypto_three_strategy_results/equity_curves.png
