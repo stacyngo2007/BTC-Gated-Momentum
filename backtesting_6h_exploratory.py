@@ -15,7 +15,7 @@ SYMBOLS = ["BTCUSDT", "ETHUSDT", "DOGEUSDT", "SHIBUSDT", "PEPEUSDT", "FLOKIUSDT"
 TRADED = [s for s in SYMBOLS if s != "BTCUSDT"]
 INITIAL_CAPITAL = 50_000.0
 DAYS_HISTORY = 120
-FEE_AND_SLIPPAGE_PER_SIDE = 0.001  # 0.20% of traded notional per side; change after verification
+FEE_AND_SLIPPAGE_PER_SIDE = 0.002  # 0.20% of traded notional per side; change after verification
 MAX_EXPOSURE = 0.30
 MAX_POSITIONS = 3
 REBALANCE_HOURS = 6

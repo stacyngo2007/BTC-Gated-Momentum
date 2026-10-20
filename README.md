@@ -1,305 +1,119 @@
-# BTC-Gated Momentum: Volatility-Filtered Breakout Research
+# BTC-Gated Momentum
 
-**Independent quantitative strategy research | Python | October 2026**
+**Systematic trading strategy research | Python · pandas · NumPy | October 2026**
 
-A systematic, long-only cryptocurrency strategy investigating whether combining **Bitcoin trend confirmation**, **24-hour price breakouts**, and a **relative realised-volatility filter** can improve the selection of momentum trades. The model converts hourly OHLC data into ranked asset candidates and risk-bounded target portfolio weights.
+Independent research and implementation of a long-only cryptocurrency momentum strategy combining a **Bitcoin market-regime gate**, **24-hour price breakouts**, and **relative realised-volatility screening**. The project produces risk-bounded portfolio targets and evaluates the hypothesis using historical Binance spot data.
 
-> **Research status:** Signal construction and portfolio-target generation are implemented. A fully reproducible, fee-adjusted historical *portfolio* performance report is being prepared. Performance cells marked `TBD` have intentionally not been estimated or attributed to this strategy without supporting evidence.
+> **Project scope:** This repository documents my independent strategy research and subsequent historical simulation. The signal module does **not** place orders. A separate team-built execution system was responsible for competition trades; historical Binance results are **not** Roostoo realised performance.
 
 ## At a glance
 
-| Component | Specification |
+| Feature | Design |
 | --- | --- |
-| Strategy name | `btc_gated_momentum` |
-| Frequency | Hourly, using completed candles |
-| Direction | Long only |
-| BTC filter | Latest BTC close above its 48-hour simple moving average |
-| Entry candidate | Latest close exceeds highest high of the prior 24 hourly candles |
-| Volatility condition | Current 24-hour realised volatility below the median of the previous 168 estimates |
-| Ranking | Highest trailing 24-hour return among qualifying candidates |
-| Positioning | Up to 3 assets, 10% target weight per asset |
-| Maximum targeted exposure | 30%; remaining 70–100% in cash |
-| Output | Portfolio target weights; **no orders placed by the research signal script** |
+| Market regime | BTC close above its 48-hour simple moving average |
+| Breakout | Asset close above the highest high of the previous 24 completed candles |
+| Volatility screen | Latest 24-hour realised volatility below the median of the **preceding** 168 estimates |
+| Ranking | Descending trailing 24-hour return |
+| Portfolio | Long-only; up to three assets at 10% target weight each |
+| Exposure | At most 30% invested; unused weight held in cash |
+| Signal data | Completed, synchronised hourly OHLC observations |
+| Historical experiment | Signals reviewed and portfolio targets updated at six-hour intervals |
 
-## 1. Research question and hypothesis
+## Research hypothesis
 
-**Research question:** Can BTC trend confirmation and low *relative* realised volatility help filter 24-hour upside breakouts in cryptocurrency markets?
+A simple price breakout may produce false positives when the broader cryptocurrency market is weak or an individual asset is experiencing elevated volatility. I investigated whether requiring **(1) a positive BTC trend** and **(2) below-median relative realised volatility** could improve the selection of momentum candidates versus a basic 24-hour breakout benchmark.
 
-The research begins with three observations:
+The hypothesis is an empirical question, not a claim of established trading alpha.
 
-1. **Breakout momentum:** A closing price above a recent trading range may signal persistent buying interest, but false breakouts are common.
-2. **Market context:** Altcoin momentum may be sensitive to the broader direction of Bitcoin, so BTC serves as a simple market gate.
-3. **Relative volatility:** Comparing an asset's current volatility with its own recent distribution may help distinguish breakouts occurring under different risk conditions.
+## Strategy construction
 
-**Hypothesis:** Requiring a supportive BTC trend and below-median relative volatility may improve the quality of momentum-based candidate selection compared with an unfiltered breakout rule. This remains a hypothesis to evaluate rather than a claim of established trading alpha.
+At the close of each completed hourly candle:
 
-**Scope:** This is hourly systematic trading research, not high-frequency trading, market making, or arbitrage.
+1. **Apply the market gate.** Permit long entries only when BTC closes above its trailing 48-hour simple moving average.
+2. **Identify breakouts.** Require a candidate asset's close to exceed the highest *high* of the previous 24 candles; the current candle is excluded from the comparison.
+3. **Screen relative volatility.** Calculate the sample standard deviation of the latest 24 hourly log returns. Require it to be below the median of the previous 168 rolling-volatility estimates (excluding the current estimate).
+4. **Rank and allocate.** Rank eligible assets by 24-hour percentage return. Select up to three and allocate 10% target weight to each. Hold the balance in cash; do not redistribute unused slots.
 
-## 2. My individual contribution
+BTC is a reference market, not a tradable position in the provided signal implementation. The default candidate universe is ETH, DOGE, SHIB, PEPE, FLOKI and BONK, quoted against USD in the signal interface. The Binance research experiment uses corresponding **USDT-quoted proxy markets**, which are not identical to Roostoo USD quotes.
 
-I independently formulated the central trading hypothesis and designed the primary **BTC-gated momentum** signal and portfolio-construction rules, including:
+### Signal validation and safety
 
-- A BTC trend gate based on a 48-hour simple moving average.
-- A prior-24-hour high breakout condition, excluding the current candle from the reference range.
-- A relative-volatility condition using a 24-hour rolling estimate and the previous 168 estimates as its historical comparison window.
-- Cross-asset ranking using trailing 24-hour returns.
-- Long-only portfolio targets capped at 10% per selected asset and 30% aggregate target exposure.
-- Python-based signal generation, input validation, and structured target-weight output as documented below.
+`strategy.py` rejects missing or non-positive OHLC values, duplicate pair/timestamp records, missing BTC reference data, unsynchronised markets, gaps in the hourly time series and insufficient observations. In normal signal mode, it also rejects incomplete or stale latest candles. It returns **target weights only**—no API credentials, trading orders or autonomous execution.
 
-This repository focuses on **the independent signal research and evaluation**. It does not claim authorship of the team's separate trading bot, execution infrastructure, or other members' analysis.
+## Historical backtesting
 
-## 3. Trading universe and portfolio design
+`backtesting_6h_exploratory.py` evaluates five research variants using approximately 120 days of Binance spot hourly data: a 24-hour breakout benchmark, a 72-hour breakout, 72-hour and 168-hour relative-strength models, and the volatility-contraction breakout described above.
 
-`BTC/USD` is used as the **reference market**, not a selected position in the provided signal implementation.
+The experiment evaluates signals with a six-hour rebalancing schedule, applies positions from the **following** hourly open, and uses an approximate weight-based portfolio-return calculation. The simulation does not reproduce real order-book execution, partial fills, spread, market impact or drift-aware cash-and-holdings accounting.
 
-The research signal's documented default eligible universe is:
+### Selected exploratory result
 
-`ETH/USD`, `DOGE/USD`, `SHIB/USD`, `PEPE/USD`, `FLOKI/USD`, `BONK/USD`.
+An **earlier historical run** of the volatility-contraction breakout produced:
 
-The set is configurable using the script's `--pairs` option. It is a predefined research universe, **not** a dynamic liquidity or market-capitalisation screen. Availability and tradability require separate checks in an execution system.
+| Metric | Earlier six-hour exploratory run |
+| --- | ---: |
+| Final-period simulated return | **+0.896%** |
+| Simulated P&L on $50,000 | **+$448.06** |
+| Final-period maximum drawdown | **0.363%** |
+| Final-period Sharpe ratio | **4.480** |
+| Assumed total execution cost | **0.20% of traded notional per side** |
 
-| Rule | Implementation |
-| --- | --- |
-| Maximum positions | 3 |
-| Target allocation per selected asset | 10% of portfolio |
-| Maximum combined asset allocation | 30% |
-| Unallocated weight | Held as cash target |
-| Fewer than 3 qualified assets | Do not redistribute unused allocation |
-| No qualified assets or BTC gate fails | 100% cash target |
+**Interpretation:** These figures are a *previously observed exploratory outcome*, **not** verified or reproducible out-of-sample performance, and **not** realised competition P&L. Other runs and evaluation configurations produced negative returns. This run was observed during iterative research, so selecting it retrospectively does not establish predictive skill.
 
-These constraints bound *intended exposure*, not actual live holdings or realised drawdowns.
+**Reproducibility note:** The original six-hour research script selects its 120-day historical window relative to execution time, so its market sample and evaluation boundaries change as time passes. Furthermore, the published script's fee parameter and the retained `crypto_three_strategy_results/all_strategy_metrics.csv` may reflect a **different run** from the +0.896% observation. The code and attached CSV therefore **should not be represented as reproducing the positive figure**. A rigorous replication would require the exact historical candles, a fixed end date, and the original 0.20%-per-side assumptions.
 
-## 4. Strategy methodology
+The retained numerical output, where provided, is available at [`crypto_three_strategy_results/all_strategy_metrics.csv`](crypto_three_strategy_results/all_strategy_metrics.csv), along with the [equity-curve chart](crypto_three_strategy_results/equity_curves.png). Those artifacts document their own run; they are not evidence for the earlier +0.896% snapshot.
 
-Let $C_{i,t}$ and $H_{i,t}$ denote the close and high of asset $i$ at completed hourly candle $t$.
+## Repository structure
 
-### 4.1 BTC regime gate
-
-Allow candidate selection only when:
-
-$$
-C_{\mathrm{BTC},t}>\frac{1}{48}\sum_{j=0}^{47}C_{\mathrm{BTC},t-j}.
-$$
-
-If the condition is not met, the strategy outputs zero target allocation for all eligible altcoins.
-
-### 4.2 Breakout confirmation
-
-Require the current completed candle's close to exceed the **highest high of the previous 24 candles**:
-
-$$
-C_{i,t}>\max(H_{i,t-1},\ldots,H_{i,t-24}).
-$$
-
-The current candle is deliberately excluded from the breakout reference window.
-
-### 4.3 Relative realised-volatility screen
-
-Calculate hourly log returns:
-
-$$
-r_{i,t}=\ln\left(\frac{C_{i,t}}{C_{i,t-1}}\right).
-$$
-
-Compute the sample standard deviation of the latest 24 hourly log returns:
-
-$$
-v_{i,t}=\operatorname{SD}(r_{i,t-23},\ldots,r_{i,t}).
-$$
-
-Require:
-
-$$
-v_{i,t}<\operatorname{Median}(v_{i,t-1},\ldots,v_{i,t-168}).
-$$
-
-The benchmark excludes the current volatility estimate. This tests **low volatility relative to recent history**, not a continuously declining volatility trend.
-
-### 4.4 Ranking and target construction
-
-For candidates satisfying all filters, calculate trailing 24-hour simple return:
-
-$$
-R_{i,t}^{24h}=\frac{C_{i,t}}{C_{i,t-24}}-1.
-$$
-
-Rank qualified assets by descending return, select up to three, and set each selected asset's target weight to **0.10**. All remaining weight is assigned to cash.
-
-The portfolio targets are **signals**; they do not imply that an exchange order has been submitted or filled.
-
-## 5. Python implementation
-
-The implementation described in the original research notes is `vol_contraction_signal.py`, with the principal function:
-
-```python
-latest_targets(candles, allowed_pairs)
+```text
+BTC-Gated-Momentum/
+├── strategy.py                         # Validated, signal-only target allocation model
+├── backtesting_6h_exploratory.py       # Six-hour historical research simulation
+├── requirements.txt
+├── README.md
+└── crypto_three_strategy_results/
+    ├── all_strategy_metrics.csv        # Retained experiment metrics
+    └── equity_curves.png               # Retained experiment chart
 ```
 
-> **Repository maintenance note:** If the published file is renamed to `btc_gated_momentum.py`, update the command below and all references to match the actual committed filename. The strategy label `btc_gated_momentum` does **not** by itself establish that such a file exists.
+### Run the research code
 
-The code uses `pandas` and `numpy` for rolling indicators, signal checks, ranking, and weight generation. Its key expressions include:
+```bash
+pip install -r requirements.txt
+python backtesting_6h_exploratory.py
+```
 
-| Expression | Purpose |
-| --- | --- |
-| `btc.rolling(48).mean()` | BTC trend reference |
-| `high.shift(1).rolling(24).max()` | Previous-high breakout threshold |
-| `np.log(close / close.shift(1)).rolling(24).std()` | 24-hour realised volatility |
-| `rv24.shift(1).rolling(168).median()` | Historical relative-volatility benchmark |
-| `close / close.shift(24) - 1` | Momentum ranking |
-| Top-three selection and fixed weights | Target portfolio construction |
+The historical runner fetches Binance data over the network and writes results into `crypto_three_strategy_results/`. Its output may differ from previously saved figures because the download window rolls forward.
 
-### Input data
-
-Provide a long-format CSV containing:
+To run the **standalone signal generator**, provide a CSV of completed, contiguous hourly candles with the following columns:
 
 ```text
 timestamp,pair,open,high,low,close
 ```
 
-The documented signal validator expects UTC **candle-start timestamps**, completed and recent hourly bars, strictly positive numeric price fields, no missing or duplicate timestamps, and synchronised series across included markets. The documented minimum is **220 contiguous hourly observations** per included market, including BTC. Invalid or stale input may produce a validation error instead of a signal.
-
-### Output
-
-A structured JSON object containing fields such as:
-
-```text
-signal_as_of_completed_candle_utc
-btc_uptrend
-target_weights
-ranked_entries
-cash_target_weight
-mode = "SIGNAL_ONLY_NO_TRADES"
-```
-
-### Running the signal script
-
 ```bash
-pip install numpy pandas
-python vol_contraction_signal.py --csv hourly_ohlc.csv
+python strategy.py --csv hourly_ohlc.csv
 ```
 
-To specify a smaller research universe:
+The signal script checks data freshness for normal use. It requires at least 220 synchronised hourly observations and returns a JSON object containing the BTC regime flag, ranked candidates, target weights and target cash weight. It does not execute trades. The CLI filename is `strategy.py`; `backtesting_6h_exploratory.py` is a separate vectorised research implementation.
 
-```bash
-python vol_contraction_signal.py --csv hourly_ohlc.csv --pairs ETH/USD DOGE/USD PEPE/USD
-```
+## Individual contribution and hackathon context
 
-**Important:** This script validates freshness against the current clock, so an older historical CSV cannot simply be supplied to it for backtesting. A chronological backtest needs a controlled simulation clock or a separately implemented historical engine.
+I independently developed the **BTC-gated breakout and volatility-contraction research hypothesis**, Python signal-generation logic, asset-ranking method and capped portfolio target construction. I subsequently investigated it through historical simulation and benchmark comparisons.
 
-## 6. Historical evaluation
+This work was undertaken in the context of the **HK vs AU vs IN Quant Trading Hackathon**, where my **team placed 9th among 190 teams (top 5%)**. The team ranking is a **collective competition outcome**, not evidence that this particular model earned the leaderboard return. Order execution and bot infrastructure were developed separately; this repository does not claim authorship of those components.
 
-The objective of backtesting is to test whether the hypothesis survives transaction costs and changes in market conditions. Backtesting **does not** retroactively explain or reproduce the hackathon leaderboard result.
+## Limitations and next steps
 
-### 6.1 Historical Backtesting
+- **Sample dependence:** Moving data windows and short chronological segments can materially change observed returns.
+- **Selection bias:** The positive exploratory run was identified after examining multiple outcomes; it is not an untouched holdout result.
+- **Execution simplification:** The six-hour simulator approximates weight-based returns and does not model live fills, order-book spreads, partial fills or liquidity constraints.
+- **Market mismatch:** Historical Binance USDT candles are proxies, not Roostoo market prices or a replay of the competition.
+- **Risk:** Long-only crypto assets may be correlated, and a 30% target exposure cap does not guarantee limited realised losses.
 
-The original BTC-Gated Momentum strategy combines Bitcoin market-regime filtering, 24-hour price breakouts, realised-volatility contraction and cross-asset momentum ranking.
-
-Historical experiments used Binance hourly cryptocurrency data and compared the strategy against four alternative momentum-based approaches.
-
-Best observed exploratory result: +0.896% final-period return, with 0.363% maximum drawdown, in an earlier six-hour rebalancing simulation using a 0.20% estimated execution cost per side.
-
-This result is reported as an exploratory observation rather than verified out-of-sample profitability. Subsequent tests using different simulation assumptions and historical samples produced negative returns.
-
-The research illustrates the sensitivity of systematic trading performance to execution assumptions, rebalancing frequency and sample selection. Historical Binance results do not represent realised returns from the Roostoo competition.
-
-
-| Metric | Standalone strategy backtest |
-| --- | --- |
-| Data source | **TBD — insert provider and dataset reference** |
-| Historical period | **TBD — insert start/end dates (UTC)** |
-| Eligible assets actually tested | **TBD — insert universe** |
-| In-sample / validation / held-out periods | **TBD — insert chronological split** |
-| Gross total return | **TBD** |
-| Net total return | **TBD** |
-| Sharpe ratio | **TBD — recalculate from periodic net portfolio returns** |
-| Sortino ratio | **TBD** |
-| Calmar ratio | **TBD** |
-| Maximum drawdown | **TBD** |
-| Number of trades | **TBD** |
-| Portfolio turnover | **TBD** |
-| Fees, spreads and slippage | **TBD — state actual assumptions** |
-| Benchmark return | **TBD — specify benchmark** |
-
-**To insert:** a labelled equity curve, drawdown chart, trade count and reproducibility instructions, once generated and verified.
-
-### 6.2 Evaluation protocol
-
-A defensible portfolio simulation should:
-
-1. Use only information observable by the end of candle $t$ to compute its signal.
-2. Simulate execution no earlier than a subsequent executable price, not the same candle's retrospectively known close.
-3. Track cash and holdings through time, including exits when target weights fall to zero.
-4. Include explicit transaction fees, bid–ask spread and slippage assumptions, and show sensitivity to those assumptions.
-5. Reserve a chronological held-out segment, without tuning parameters on the final test results.
-6. Publish the observation period, return frequency, trade count, and actual backtest implementation so results can be reproduced.
-
-### 6.3 Risk-adjusted metrics — pending calculation
-
-- **Sharpe:** mean periodic excess portfolio return divided by its standard deviation, annualised using the stated return frequency.
-- **Sortino:** excess return over a stated target relative to downside deviation.
-- **Calmar:** annualised compounded return divided by the absolute maximum drawdown, where the observation period supports a meaningful estimate.
-
-Use a consistent **net-of-cost portfolio-equity series** for these calculations. If a statistic is undefined or misleading due to sample size or a zero denominator, report that directly rather than inserting a fabricated number.
-
-## 7. Market-regime sensitivity research
-
-The companion research investigated whether results differed across **BTC uptrend, sideways, downtrend and high-volatility conditions**. The historical regime classification described in the original notes used BTC 24-hour and 168-hour moving averages and a realised-volatility threshold derived from training data.
-
-This analysis is **diagnostic and descriptive**: it does not itself change the strategy's live target allocations.
-
-### Interpretation
-
-Initial regime comparisons identified **weaknesses and negative returns in several research and validation subsets**, supporting further investigation of regime dependence and false breakouts. The currently available README also reports some positive results in its *final-test* regime subsets, so the full table must be reconciled against the underlying CSV before a single definitive summary is published.
-
-The practical research takeaway is that **regime sensitivity deserves testing, and no consistently profitable regime has yet been established across evaluation periods**. Negative findings are retained as evidence rather than edited out.
-
-**To verify before publishing detailed figures:**
-
-- [ ] Confirm the exact strategy identifier in the regime CSV (`btc_gated_momentum` versus prior research labels).
-- [ ] Reconcile research / validation / final-test observations against the latest generated CSV.
-- [ ] Confirm that reported returns reflect portfolio accounting and the declared trading-cost assumptions.
-- [ ] Insert a small table or plot of **verified** regime results, including negative values.
-- [ ] Confirm that high-volatility group sizes are adequate to interpret.
-
-**Optional supporting documentation:** link to a verified regime analysis file once it exists at the committed relative path (for example, `Market_regime_research/README.md`).
-
-## 8. Risk management and limitations
-
-**Implemented at the signal level**
-
-- Long-only selection and BTC market gate.
-- Maximum three selected positions.
-- Fixed 10% allocation per selected asset, with 30% maximum aggregate **target** exposure.
-- Cash target for unused allocation.
-- Required completed, recent and synchronised market data; rejection of selected invalid inputs.
-
-**Not established by the signal script**
-
-- Successful live order placement, fills, position reconciliation or execution quality.
-- Standalone stop-loss, take-profit or intrabar liquidation rules.
-- Protection against false breakouts, crypto-asset correlation, thin liquidity, or spread widening.
-- Historical profitability or satisfactory risk-adjusted performance.
-
-The original notes also identify data checks that could be extended, including OHLC internal-consistency validation and enforcement of exact hour-boundary timestamps.
-
-## 9. Hackathon context — separate from strategy performance
-
-This research originated during the **HK vs AU vs IN Quant Trading Hackathon (October 2026)**. The team reached **9th among 190 teams (top 5%)**, according to the reported leaderboard placement. **[ADD: link or screenshot of the final official ranking, and verify final versus interim status.]**
-
-My individual contribution was the core research hypothesis and signal/portfolio model documented here. The team's separately developed live execution bot was **not a faithful end-to-end implementation of this research universe and strategy**, and executed very few trades during the competition. As a result, the leaderboard placement **must not be interpreted as measured live returns attributable to this standalone model**.
-
-This repository intentionally does not include or claim authorship of the team bot. Live contest metrics are not presented as a backtest of `btc_gated_momentum`.
-
-## 10. Next research steps
-
-- [ ] Commit and verify the standalone strategy source and input-data example (with no credentials or private data).
-- [ ] Implement / document a reproducible, chronological portfolio backtest using the intended universe.
-- [ ] Calculate **net return, Sharpe, Sortino, maximum drawdown, trade count and turnover** from a consistent portfolio return series.
-- [ ] Compare breakout-only, breakout + BTC gate, breakout + volatility screen and the full combined model on the same sample.
-- [ ] Reconcile market-regime CSV labels and figures, retaining negative results.
-- [ ] Run robustness checks for nearby lookback windows, costs, universe selection and out-of-sample performance.
-- [ ] Add a final leaderboard evidence link and a clearly labelled backtest chart.
+For stronger evidence, freeze the data window, archive the input data and parameter settings, test execution-cost sensitivity and evaluate a genuinely unseen forward period without selecting configurations using that period's results.
 
 ---
 
-**Research integrity note:** The purpose of this repository is to document strategy design, implementation and empirical evaluation. A high hackathon ranking is a team competition outcome, not independent evidence that this particular strategy was profitable in live trading. Any future numerical results should be supported by reproducible code, data and stated assumptions.
+**Research integrity:** The project demonstrates strategy formulation, signal engineering, risk-bounded portfolio construction and critical assessment of historical evidence. Exploratory simulation results should not be interpreted as guaranteed or live trading profitability.
