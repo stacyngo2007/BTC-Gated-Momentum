@@ -42,6 +42,8 @@ BTC is a reference market, not a tradable position in the provided signal implem
 
 ## Historical backtesting
 
+backtesting_6h_exploratory.py evaluates five strategy variants using approximately 120 days of Binance spot hourly data: a 24-hour breakout benchmark, a 72-hour breakout, 72-hour and 168-hour relative-strength strategies, and the volatility-contraction breakout.
+
 The experiment evaluates signals using a six-hour rebalancing schedule, applies target positions from the following hourly open, and uses approximate weight-based portfolio accounting. An estimated 0.20% execution cost per side is applied to traded notional to account for transaction fees and slippage. The simulation does not separately model bid–ask spreads, market impact, order-book liquidity, partial fills, or drift-aware cash-and-holdings accounting.
 
 ### Selected exploratory result
