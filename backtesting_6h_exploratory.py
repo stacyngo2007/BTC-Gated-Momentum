@@ -1,6 +1,5 @@
-"""Research-only Binance spot backtest: 3 strategies + 24h breakout benchmark.
-
-Run: python crypto_three_strategies_backtest.py
+"""Research-only Binance spot backtest: five momentum strategy variants.
+Run: python backtesting_6h_exploratory.py
 Dependencies: pip install pandas numpy requests matplotlib
 No API keys and NO order requests. Uses real Binance SPOT hourly OHLCV.
 Signals use completed closes. Positions change at the NEXT hourly open.
@@ -15,7 +14,7 @@ SYMBOLS = ["BTCUSDT", "ETHUSDT", "DOGEUSDT", "SHIBUSDT", "PEPEUSDT", "FLOKIUSDT"
 TRADED = [s for s in SYMBOLS if s != "BTCUSDT"]
 INITIAL_CAPITAL = 50_000.0
 DAYS_HISTORY = 120
-FEE_AND_SLIPPAGE_PER_SIDE = 0.002  # 0.20% of traded notional per side; change after verification
+FEE_AND_SLIPPAGE_PER_SIDE = 0.002  # Estimated 0.20% execution cost per side
 MAX_EXPOSURE = 0.30
 MAX_POSITIONS = 3
 REBALANCE_HOURS = 6
@@ -189,6 +188,8 @@ def main():
     prices = load_prices()
     n = len(prices["close"])
     print(f"Synchronized: {n} bars, {len(prices['close'].columns)} symbols")
+    print("First candle:", prices["close"].index[0])
+    print("Last candle:", prices["close"].index[-1])
     targets = make_signals(prices)
     all_results = {name: simulate(prices, w) for name, w in targets.items()}
     end = min(map(len, all_results.values()))

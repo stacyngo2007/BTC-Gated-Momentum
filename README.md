@@ -27,7 +27,7 @@ The hypothesis is an empirical question, not a claim of established trading alph
 
 ## Strategy construction
 
-At the close of each completed hourly candle:
+For each signal evaluation, using the latest completed hourly candle:
 
 1. **Apply the market gate.** Permit long entries only when BTC closes above its trailing 48-hour simple moving average.
 2. **Identify breakouts.** Require a candidate asset's close to exceed the highest *high* of the previous 24 candles; the current candle is excluded from the comparison.
@@ -44,7 +44,7 @@ BTC is a reference market, not a tradable position in the provided signal implem
 
 `backtesting_6h_exploratory.py` evaluates five research variants using approximately 120 days of Binance spot hourly data: a 24-hour breakout benchmark, a 72-hour breakout, 72-hour and 168-hour relative-strength models, and the volatility-contraction breakout described above.
 
-The experiment evaluates signals with a six-hour rebalancing schedule, applies positions from the **following** hourly open, and uses an approximate weight-based portfolio-return calculation. The simulation does not reproduce real order-book execution, partial fills, spread, market impact or drift-aware cash-and-holdings accounting.
+The experiment evaluates signals with a six-hour rebalancing schedule, applies positions from the **following** hourly open, and uses an approximate weight-based portfolio-return calculation. The experiment evaluates signals using a six-hour rebalancing schedule, applies target positions from the following hourly open, and uses approximate weight-based portfolio accounting. An estimated 0.20% cost per side is applied to traded notional to approximate transaction fees and slippage. The simulation does not separately model bid–ask spreads, market impact, order-book liquidity, partial fills, or drift-aware cash-and-holdings accounting.
 
 ### Selected exploratory result
 
@@ -60,7 +60,7 @@ An **earlier historical run** of the volatility-contraction breakout produced:
 
 **Interpretation:** These figures are a *previously observed exploratory outcome*, **not** verified or reproducible out-of-sample performance, and **not** realised competition P&L. Other runs and evaluation configurations produced negative returns. This run was observed during iterative research, so selecting it retrospectively does not establish predictive skill.
 
-**Reproducibility note:** The original six-hour research script selects its 120-day historical window relative to execution time, so its market sample and evaluation boundaries change as time passes. Furthermore, the published script's fee parameter and the retained `crypto_three_strategy_results/all_strategy_metrics.csv` may reflect a **different run** from the +0.896% observation. The code and attached CSV therefore **should not be represented as reproducing the positive figure**. A rigorous replication would require the exact historical candles, a fixed end date, and the original 0.20%-per-side assumptions.
+**Reproducibility note:** The six-hour research script downloads a rolling 120-day historical window, so the market sample and evaluation boundaries change between executions. Although the published script uses the same 0.20%-per-side cost assumption, the retained results CSV and equity chart may represent a different historical run from the +0.896% observation. Reproducing that earlier result would require the exact historical data and evaluation dates used at the time.
 
 The retained numerical output, where provided, is available at [`crypto_three_strategy_results/all_strategy_metrics.csv`](crypto_three_strategy_results/all_strategy_metrics.csv), along with the [equity-curve chart](crypto_three_strategy_results/equity_curves.png). Those artifacts document their own run; they are not evidence for the earlier +0.896% snapshot.
 

@@ -33,6 +33,8 @@ def latest_targets(candles: pd.DataFrame, allowed_pairs, historical=False):
         raise ValueError("Missing OHLC data; refusing signals")
     if (df[["open", "high", "low", "close"]] <= 0).any().any():
         raise ValueError("Nonpositive OHLC price")
+    if ((df["high"] < df[["open", "close", "low"]].max(axis=1))|(df["low"] > df[["open", "close", "high"]].min(axis=1))).any():
+        raise ValueError("Inconsistent OHLC candle")
     if df.duplicated(["timestamp", "pair"]).any():
         raise ValueError("Duplicate pair/timestamp")
     allowed = list(dict.fromkeys(allowed_pairs))
@@ -53,6 +55,8 @@ def latest_targets(candles: pd.DataFrame, allowed_pairs, historical=False):
     if close.isna().any().any() or high.isna().any().any():
         raise ValueError("Missing shared hourly bars")
     idx = close.index
+    if (idx != idx.floor("h")).any():
+        raise ValueError("Candle timestamps must align to UTC hour boundaries")
     if len(idx) < MIN_HISTORY_HOURS:
         raise ValueError(f"Need at least {MIN_HISTORY_HOURS} synchronized hourly candles; got {len(idx)}")
     if (idx.to_series().diff().dropna() != pd.Timedelta(hours=1)).any():
